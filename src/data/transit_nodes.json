@@ -1,0 +1,13 @@
+{
+  "route_id": "KCK-MNR-01",
+  "route_name": "Kochi to Munnar Mountain Corridor",
+  "low_connectivity_zones": [
+    { "zone": "Neriamangalam Bridge", "signal": "Poor", "alt_channel": "VHF 142.8 MHz" },
+    { "zone": "Adimali Ghats", "signal": "No Signal", "alt_channel": "Depot Relayer 04" },
+    { "zone": "Cheeyappara Section", "signal": "Intermittent", "alt_channel": "SMS Gateway 56161" }
+  ],
+  "emergency_contacts": [
+    { "depot": "Kochi Main Depot", "phone": "+91 484 2372033" },
+    { "depot": "Munnar Control Room", "phone": "+91 486 5230201" }
+  ]
+}
