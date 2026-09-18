@@ -1,13 +1,55 @@
 {
   "route_id": "KCK-MNR-01",
   "route_name": "Kochi to Munnar Mountain Corridor",
+  "total_distance_km": 128,
   "low_connectivity_zones": [
-    { "zone": "Neriamangalam Bridge", "signal": "Poor", "alt_channel": "VHF 142.8 MHz" },
-    { "zone": "Adimali Ghats", "signal": "No Signal", "alt_channel": "Depot Relayer 04" },
-    { "zone": "Cheeyappara Section", "signal": "Intermittent", "alt_channel": "SMS Gateway 56161" }
+    {
+      "zone": "Neriamangalam Bridge",
+      "signal": "Poor",
+      "alt_channel": "VHF 142.8 MHz",
+      "elevation": "120m",
+      "last_updated": "10 mins ago"
+    },
+    {
+      "zone": "Valara Waterfalls Pass",
+      "signal": "Intermittent",
+      "alt_channel": "LoRa Node 02",
+      "elevation": "350m",
+      "last_updated": "5 mins ago"
+    },
+    {
+      "zone": "Cheeyappara Section",
+      "signal": "Intermittent",
+      "alt_channel": "SMS Gateway 56161",
+      "elevation": "510m",
+      "last_updated": "Just now"
+    },
+    {
+      "zone": "Adimali Ghats",
+      "signal": "No Signal",
+      "alt_channel": "Depot Relayer 04",
+      "elevation": "850m",
+      "last_updated": "15 mins ago"
+    },
+    {
+      "zone": "Kallar Valley Bend",
+      "signal": "Poor",
+      "alt_channel": "VHF 143.1 MHz",
+      "elevation": "1100m",
+      "last_updated": "2 mins ago"
+    },
+    {
+      "zone": "Pallivasal Stretch",
+      "signal": "Intermittent",
+      "alt_channel": "LoRa Node 05",
+      "elevation": "1400m",
+      "last_updated": "8 mins ago"
+    }
   ],
   "emergency_contacts": [
     { "depot": "Kochi Main Depot", "phone": "+91 484 2372033" },
+    { "depot": "Kothamangalam Station", "phone": "+91 485 2862202" },
+    { "depot": "Adimali Transit Hub", "phone": "+91 486 4222400" },
     { "depot": "Munnar Control Room", "phone": "+91 486 5230201" }
   ]
 }
