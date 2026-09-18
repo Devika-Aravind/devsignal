@@ -1,369 +1,369 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wifi, WifiOff, Volume2, VolumeX, Save, FileCode, Database, 
-  Send, Radio, HardDrive, Code, Plus, Trash2, Search, Sliders, Play, Square 
-} from 'lucide-react';
+import { Terminal, Bus, Volume2, ShieldAlert, Save, Plus, Trash2, Send, Wifi, WifiOff } from 'lucide-react';
 import transitData from './data/transit_nodes.json';
 
 export default function App() {
-  // Navigation State
-  const [activeTab, setActiveTab] = useState('hub'); // 'hub', 'transit', 'audio'
+  const [activeTab, setActiveTab] = useState('hub');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Workspace State with pre-loaded demo code
+  const [files, setFiles] = useState([
+    {
+      id: '1',
+      name: 'main.js',
+      content: `// DevSignal Offline Workspace
+// Cached KSRTC Route Payload Demo
+const transitNode = {
+  corridor: "Kochi to Munnar",
+  zone: "Adimali Ghats",
+  signal: "No Signal",
+  fallbackChannel: "Depot Relayer 04"
+};
 
-  // Multi-File Snippet Storage State
-  const [files, setFiles] = useState(() => {
-    const saved = localStorage.getItem('devsignal_files');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'main.js', content: '// Write or paste offline code here...\nconsole.log("DevSignal Active");' },
-      { id: '2', name: 'api_endpoints.md', content: '# Emergency API Endpoints\n- GET /api/v1/transit/status\n- POST /api/v1/incident/report' }
-    ];
-  });
+console.log("DevSignal Active:", transitNode);`
+    },
+    {
+      id: '2',
+      name: 'emergency_contacts.json',
+      content: `{
+  "kochi_depot": "+91 484 2372033",
+  "munnar_control": "+91 486 5230201",
+  "kothamangalam": "+91 485 2862202"
+}`
+    }
+  ]);
   const [activeFileId, setActiveFileId] = useState('1');
   const [newFileName, setNewFileName] = useState('');
 
-  // Audio Synthesizer State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [soundType, setSoundType] = useState('brown');
+  // AI Query State
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLogs, setAiLogs] = useState([]);
+
+  // Transit Search State
+  const [searchZone, setSearchZone] = useState('');
+
+  // Web Audio State
   const [audioCtx, setAudioCtx] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioType, setAudioType] = useState('brown');
 
-  // AI & Query State
-  const [prompt, setPrompt] = useState('');
-  const [aiOutput, setAiOutput] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Network & Storage State
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Sync Network Status & Local Storage
+  // Monitor Network Connectivity
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    localStorage.setItem('devsignal_files', JSON.stringify(files));
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [files]);
+  }, []);
 
+  // Workspace Functions
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
-  const handleContentChange = (newContent) => {
-    setFiles(files.map(f => f.id === activeFileId ? { ...f, content: newContent } : f));
+  const handleContentChange = (e) => {
+    const updated = files.map(f => f.id === activeFileId ? { ...f, content: e.target.value } : f);
+    setFiles(updated);
   };
 
-  const handleAddFile = (e) => {
-    e.preventDefault();
+  const handleSaveLocal = () => {
+    localStorage.setItem('devsignal_files', JSON.stringify(files));
+    alert('Workspace saved locally to browser storage!');
+  };
+
+  const handleAddFile = () => {
     if (!newFileName.trim()) return;
-    const newFile = { id: Date.now().toString(), name: newFileName.trim(), content: '' };
+    const newFile = { id: Date.now().toString(), name: newFileName.trim(), content: '// New offline file\n' };
     setFiles([...files, newFile]);
     setActiveFileId(newFile.id);
     setNewFileName('');
   };
 
   const handleDeleteFile = (id) => {
-    if (files.length === 1) return alert("Keep at least one file!");
-    const updated = files.filter(f => f.id !== id);
-    setFiles(updated);
-    if (activeFileId === id) setActiveFileId(updated[0].id);
+    if (files.length === 1) return;
+    const filtered = files.filter(f => f.id !== id);
+    setFiles(filtered);
+    if (activeFileId === id) setActiveFileId(filtered[0].id);
   };
 
-  // Web Audio Generator
-  const toggleAudio = (type = soundType) => {
+  // Micro-Payload AI Query Handler
+  const handleSendAi = (e) => {
+    e.preventDefault();
+    if (!aiQuery.trim()) return;
+    const timestamp = new Date().toLocaleTimeString();
+    const newLog = `[${timestamp}] Query: "${aiQuery}" -> Processed via micro-payload channel.`;
+    setAiLogs([newLog, ...aiLogs]);
+    setAiQuery('');
+  };
+
+  // Web Audio Synthesizer
+  const toggleAudio = () => {
     if (isPlaying) {
       if (audioCtx) audioCtx.close();
+      setAudioCtx(null);
       setIsPlaying(false);
     } else {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const bufferSize = ctx.sampleRate * 2;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      
       let lastOut = 0.0;
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
-        if (type === 'brown') {
-          output[i] = (lastOut + (0.02 * white)) / 1.02;
-          lastOut = output[i];
-          output[i] *= 3.5;
+        if (audioType === 'brown') {
+          data[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = data[i];
+          data[i] *= 3.5;
         } else {
-          output[i] = white * 0.1;
+          data[i] = white * 0.1;
         }
       }
 
-      const whiteNoise = ctx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
-      whiteNoise.loop = true;
-
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 0.05;
-
-      whiteNoise.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      whiteNoise.start();
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+      noise.connect(ctx.destination);
+      noise.start();
 
       setAudioCtx(ctx);
-      setSoundType(type);
       setIsPlaying(true);
     }
   };
 
-  const handleAiQuery = (e) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    setLoading(true);
-
-    setTimeout(() => {
-      setAiOutput(`[Compressed Response | Payload: 38 Bytes]\n• Prompt: "${prompt}"\n• Optimization: Code structure validated for low-bandwidth transfer.\n• Recommendation: Use local indexed C-buffers for transit state handling.`);
-      setLoading(false);
-    }, 600);
-  };
-
-  const filteredNodes = transitData.low_connectivity_zones.filter(z => 
-    z.zone.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    z.signal.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredZones = transitData.low_connectivity_zones.filter(z => 
+    z.zone.toLowerCase().includes(searchZone.toLowerCase())
   );
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem', fontFamily: 'system-ui, sans-serif' }}>
-      
-      {/* Navbar Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8">
+      {/* Top Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <h1 style={{ color: '#10b981', margin: 0, fontSize: '1.8rem', fontWeight: 'bold' }}>DevSignal</h1>
-            <span style={{
-              backgroundColor: isOnline ? '#064e3b' : '#7f1d1d',
-              color: isOnline ? '#34d399' : '#fca5a5',
-              fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '4px',
-              border: `1px solid ${isOnline ? '#047857' : '#991b1b'}`,
-              display: 'flex', alignItems: 'center', gap: '0.3rem'
-            }}>
-              {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-emerald-400 tracking-tight">DevSignal</h1>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isOnline ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}`}>
+              {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
               {isOnline ? 'Online Sync' : 'Offline Mode'}
             </span>
           </div>
-          <p style={{ color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}>Low-Bandwidth Developer Hub & Incident Transit Locker</p>
+          <p className="text-sm text-slate-400 mt-1">Low-Bandwidth Developer Hub & Incident Transit Locker</p>
         </div>
 
-        {/* Tab Navigation */}
-        <nav style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#020617', padding: '0.3rem', borderRadius: '0.5rem', border: '1px solid #1e293b' }}>
-          <button 
+        {/* Navigation Tabs */}
+        <nav className="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+          <button
             onClick={() => setActiveTab('hub')}
-            style={{ backgroundColor: activeTab === 'hub' ? '#059669' : 'transparent', color: '#f8fafc', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.3rem', cursor: 'pointer', fontSize: '0.85rem' }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'hub' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            Developer Hub
+            <Terminal className="w-4 h-4" /> Developer Hub
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('transit')}
-            style={{ backgroundColor: activeTab === 'transit' ? '#059669' : 'transparent', color: '#f8fafc', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.3rem', cursor: 'pointer', fontSize: '0.85rem' }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'transit' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            Transit Monitor
+            <Bus className="w-4 h-4" /> Transit Monitor
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('audio')}
-            style={{ backgroundColor: activeTab === 'audio' ? '#059669' : 'transparent', color: '#f8fafc', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.3rem', cursor: 'pointer', fontSize: '0.85rem' }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'audio' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            Focus Audio Studio
+            <Volume2 className="w-4 h-4" /> Focus Audio Studio
           </button>
         </nav>
       </header>
 
-      {/* TAB 1: DEVELOPER HUB */}
-      {activeTab === 'hub' && (
-        <main style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem' }}>
-          
-          {/* File Sidebar */}
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Code size={16} color="#10b981" /> File Workspace
-            </h3>
-            
-            <form onSubmit={handleAddFile} style={{ display: 'flex', gap: '0.4rem' }}>
-              <input 
-                type="text" 
-                placeholder="filename.js" 
-                value={newFileName} 
-                onChange={(e) => setNewFileName(e.target.value)}
-                style={{ flex: 1, backgroundColor: '#020617', border: '1px solid #1e293b', color: '#fff', padding: '0.3rem 0.5rem', borderRadius: '0.3rem', fontSize: '0.8rem' }}
-              />
-              <button type="submit" style={{ backgroundColor: '#059669', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '0.3rem', cursor: 'pointer' }}>
-                <Plus size={14} />
-              </button>
-            </form>
+      {/* Main Content Area */}
+      <main>
+        {/* TAB 1: DEVELOPER HUB */}
+        {activeTab === 'hub' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar File Workspace */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col h-[600px]">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-emerald-400" /> File Workspace
+              </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {files.map(file => (
-                <div 
-                  key={file.id} 
-                  onClick={() => setActiveFileId(file.id)}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '0.5rem', borderRadius: '0.4rem', cursor: 'pointer',
-                    backgroundColor: activeFileId === file.id ? '#1e293b' : 'transparent',
-                    border: activeFileId === file.id ? '1px solid #059669' : '1px solid transparent'
-                  }}
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="filename.js"
+                  value={newFileName}
+                  onChange={(e) => setNewFileName(e.target.value)}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={handleAddFile}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-lg transition-colors"
                 >
-                  <span style={{ fontSize: '0.8rem', color: activeFileId === file.id ? '#34d399' : '#94a3b8' }}>
-                    📄 {file.name}
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    onClick={() => setActiveFileId(file.id)}
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-xs transition-all ${activeFileId === file.id ? 'bg-slate-800 border border-emerald-500/30 text-emerald-300 font-medium' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                  >
+                    <span className="truncate">{file.name}</span>
+                    {files.length > 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
+                        className="text-slate-500 hover:text-rose-400 p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Code Editor & Micro AI */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Code Editor */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col h-[400px]">
+                <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-800">
+                  <span className="text-xs text-slate-400">
+                    Editing: <strong className="text-emerald-400">{activeFile.name}</strong>
                   </span>
-                  {files.length > 1 && (
-                    <Trash2 
-                      size={12} 
-                      color="#ef4444" 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }} 
-                    />
+                  <button
+                    onClick={handleSaveLocal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-emerald-950"
+                  >
+                    <Save className="w-3.5 h-3.5" /> Save Local
+                  </button>
+                </div>
+                <textarea
+                  value={activeFile.content}
+                  onChange={handleContentChange}
+                  className="flex-1 bg-slate-950 text-slate-200 font-mono text-sm p-4 rounded-xl border border-slate-800/80 focus:outline-none focus:border-emerald-500/50 resize-none"
+                />
+              </div>
+
+              {/* Micro-Payload AI Query Engine */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Micro-Payload AI Query Engine
+                </h3>
+                <form onSubmit={handleSendAi} className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="Enter low-bandwidth prompt (e.g. Explain binary search in C)..."
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-700 transition-colors"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Send
+                  </button>
+                </form>
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 h-20 overflow-y-auto font-mono text-xs text-slate-400">
+                  {aiLogs.length === 0 ? (
+                    <span className="text-slate-600">// Query output log renders here...</span>
+                  ) : (
+                    aiLogs.map((log, idx) => <div key={idx} className="text-emerald-400/90">{log}</div>)
                   )}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Main Workspace Area */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
-            {/* Active Code Editor */}
-            <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '0.75rem', padding: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '0.85rem', color: '#f8fafc', fontWeight: 'bold' }}>
-                  Editing: <span style={{ color: '#10b981' }}>{activeFile.name}</span>
-                </span>
-                <button 
-                  onClick={() => alert(`Saved ${activeFile.name} to browser storage!`)}
-                  style={{ backgroundColor: '#059669', color: '#fff', border: 'none', padding: '0.3rem 0.75rem', borderRadius: '0.3rem', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                >
-                  <Save size={12} /> Save Local
-                </button>
-              </div>
-              <textarea 
-                value={activeFile.content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                style={{
-                  width: '100%', minHeight: '220px', backgroundColor: '#020617', color: '#f8fafc',
-                  border: '1px solid #1e293b', borderRadius: '0.5rem', padding: '0.75rem',
-                  fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {/* Micro AI Assistant */}
-            <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '0.75rem', padding: '1rem' }}>
-              <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Radio size={16} color="#10b981" /> Micro-Payload AI Query Engine
-              </h3>
-              <form onSubmit={handleAiQuery} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <input 
-                  type="text" 
-                  placeholder="Enter low-bandwidth prompt (e.g. Explain binary search in C)..." 
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  style={{ flex: 1, backgroundColor: '#020617', border: '1px solid #1e293b', color: '#fff', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.8rem' }}
+        {/* TAB 2: TRANSIT MONITOR */}
+        {activeTab === 'transit' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-100">{transitData.route_name} <span className="text-emerald-400 text-sm font-normal">({transitData.route_id})</span></h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Cached KSRTC Low-Connectivity Transit Corridor Data</p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search signal zones..."
+                  value={searchZone}
+                  onChange={(e) => setSearchZone(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 w-full md:w-64 focus:outline-none focus:border-emerald-500"
                 />
-                <button type="submit" disabled={loading} style={{ backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', cursor: 'pointer', fontSize: '0.8rem' }}>
-                  <Send size={12} /> {loading ? '...' : 'Send'}
-                </button>
-              </form>
-              <div style={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '0.4rem', padding: '0.75rem', color: '#34d399', fontFamily: 'monospace', fontSize: '0.8rem', minHeight: '80px', whiteSpace: 'pre-wrap' }}>
-                {aiOutput || '// Query output log renders here...'}
+              </div>
+
+              {/* Signal Zone Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredZones.map((item, idx) => (
+                  <div key={idx} className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 hover:border-slate-700 transition-all">
+                    <h3 className="font-semibold text-sm text-slate-200 mb-1">{item.zone}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs text-slate-400">Signal Status:</span>
+                      <span className={`text-xs font-bold ${item.signal === 'No Signal' ? 'text-rose-400' : item.signal === 'Poor' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {item.signal}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Alternative Channel: <span className="text-slate-300 font-mono">{item.alt_channel}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
+            {/* Emergency Depot Contacts */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-emerald-400" /> Emergency Depot Contacts
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {transitData.emergency_contacts.map((contact, idx) => (
+                  <div key={idx} className="bg-slate-950 border border-slate-800/60 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <span className="font-medium text-slate-300">{contact.depot}</span>
+                    <span className="font-mono text-emerald-400">{contact.phone}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </main>
-      )}
+        )}
 
-      {/* TAB 2: TRANSIT MONITOR */}
-      {activeTab === 'transit' && (
-        <main style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '0.75rem', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        {/* TAB 3: FOCUS AUDIO STUDIO */}
+        {activeTab === 'audio' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-2xl mx-auto text-center space-y-6">
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#f8fafc' }}>
-                {transitData.route_name} <span style={{ color: '#10b981' }}>({transitData.route_id})</span>
-              </h2>
-              <p style={{ margin: '0.2rem 0 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>Cached KSRTC Low-Connectivity Transit Corridor Data</p>
+              <h2 className="text-lg font-bold text-emerald-400 mb-1">Client-Side Web Audio Synthesizer</h2>
+              <p className="text-xs text-slate-400">
+                Generates pure ambient noise locally using your laptop's sound engine. Zero network bandwidth consumed during playback.
+              </p>
             </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#020617', border: '1px solid #1e293b', padding: '0.4rem 0.75rem', borderRadius: '0.4rem' }}>
-              <Search size={14} color="#64748b" />
-              <input 
-                type="text" 
-                placeholder="Search signal zones..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ backgroundColor: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
-              />
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setAudioType('brown')}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${audioType === 'brown' ? 'bg-emerald-950 text-emerald-400 border-emerald-600' : 'bg-slate-950 text-slate-400 border-slate-800'}`}
+              >
+                Deep Brown Noise
+              </button>
+              <button
+                onClick={() => setAudioType('white')}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${audioType === 'white' ? 'bg-emerald-950 text-emerald-400 border-emerald-600' : 'bg-slate-950 text-slate-400 border-slate-800'}`}
+              >
+                Static Focus Noise
+              </button>
             </div>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-            {filteredNodes.map((item, idx) => (
-              <div key={idx} style={{ backgroundColor: '#020617', border: '1px solid #1e293b', padding: '1rem', borderRadius: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: '#f8fafc', fontSize: '0.95rem' }}>{item.zone}</h4>
-                <p style={{ margin: '0.4rem 0 0 0', color: item.signal === 'No Signal' ? '#ef4444' : '#fbbf24', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                  Signal Status: {item.signal}
-                </p>
-                <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.75rem' }}>
-                  Alternative Channel: {item.alt_channel}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#e2e8f0' }}>Emergency Depot Contacts</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-            {transitData.emergency_contacts.map((contact, idx) => (
-              <div key={idx} style={{ backgroundColor: '#020617', border: '1px solid #1e293b', padding: '0.75rem 1rem', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#f8fafc', fontSize: '0.85rem' }}>{contact.depot}</span>
-                <span style={{ color: '#10b981', fontFamily: 'monospace', fontSize: '0.85rem' }}>{contact.phone}</span>
-              </div>
-            ))}
-          </div>
-        </main>
-      )}
-
-      {/* TAB 3: FOCUS AUDIO STUDIO */}
-      {activeTab === 'audio' && (
-        <main style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '0.75rem', padding: '2rem', textAlign: 'center' }}>
-          <h2 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Client-Side Web Audio Synthesizer</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto 2rem auto' }}>
-            Generates pure ambient noise locally using your laptop's sound engine. Zero network bandwidth consumed during playback.
-          </p>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <button 
-              onClick={() => toggleAudio('brown')}
-              style={{
-                backgroundColor: soundType === 'brown' && isPlaying ? '#059669' : '#020617',
-                border: '1px solid #1e293b', color: '#fff', padding: '1rem 2rem', borderRadius: '0.5rem', cursor: 'pointer'
-              }}
+            <button
+              onClick={toggleAudio}
+              className={`px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-lg ${isPlaying ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950'}`}
             >
-              <h3>Deep Brown Noise</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Low frequency rumble for heavy focus</p>
-            </button>
-
-            <button 
-              onClick={() => toggleAudio('white')}
-              style={{
-                backgroundColor: soundType === 'white' && isPlaying ? '#059669' : '#020617',
-                border: '1px solid #1e293b', color: '#fff', padding: '1rem 2rem', borderRadius: '0.5rem', cursor: 'pointer'
-              }}
-            >
-              <h3>Static Focus Noise</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Crisp ambient noise for writing code</p>
+              {isPlaying ? 'Stop Focus Audio' : 'Start Focus Audio'}
             </button>
           </div>
-
-          <button 
-            onClick={() => toggleAudio()}
-            style={{ backgroundColor: isPlaying ? '#ef4444' : '#10b981', color: '#fff', border: 'none', padding: '0.75rem 2rem', borderRadius: '0.5rem', fontSize: '1rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            {isPlaying ? <Square size={16} /> : <Play size={16} />}
-            {isPlaying ? 'Stop Audio Engine' : 'Start Focus Audio'}
-          </button>
-        </main>
-      )}
-
+        )}
+      </main>
     </div>
   );
 }
